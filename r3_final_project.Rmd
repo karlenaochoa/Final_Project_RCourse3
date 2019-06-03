@@ -16,6 +16,8 @@ library(here)
 ```
 Hello, this is a tutorial in functional programming that makes use of existing data to exemplify the rationale and methods underlying functional programming. Functional programming breaks down large problems (or processes) into smaller, component problems (or processes). Functional programming also eschews unnecessary repetition in favor of efficiency. It is in the spirit of functional programming to find efficient, robust ways to perform transparent operations on input. 
 
+#I like this intro for functional programming.
+
 The data we're working with (and the data that you'll be working with should you choose to follow along) was collected by one of the authors of this tutorial. The data concerns the prevalence of trauma symptoms among respondents, and the association of these trauma symptoms with other variables of interest. The two datasets correspond to two different pools of participants: one pool of participants who completed questionnaires in 2017 and another pool of participants who provided responses in 2018.
 ```{r import}
 d1 <- rio::import(here::here("Lind_GS_F17.csv"), setclass = "tbl_df") %>% 
@@ -34,11 +36,12 @@ d1_raw <- d1 %>% #Created a new variable, pid, based on row number
   mutate(pid = row_number(),
          group = 1) %>% 
   select(115:116, 3:4, 7:114) %>% #Select (just-created) pid and group, Duration in seconds and RecordedDates, and then 107 columns.
+  
+  #it might be helpful to put these in order for clarity. select(3:4, 7:114, 115:116)
   rename(date = RecordedDate,
          duration = Duration__in_seconds_,
          race_ethn = q1_3,
          gender = q346,
-         gender_text = q346_4_TEXT,
          age = q348) %>% 
   mutate(age = (age + 15)) %>% 
   select(-7) #Omits gender_text column
@@ -157,7 +160,9 @@ Below we've included a long, roundabout way to (1) select the demographic variab
 #   select(1:7, 10, 8:9)
 
 ```
-Below we have written a function to extract demographic info, a function to extract responses to the TSC, and (most importantly!) a function to recode the responses to subtract a one from each response. Importantly, the two former functions assume that the next version of this questionnaire has the same number of questions in the same order. Assuming this is indeed the case, functions to isolate questions of interest could be helpful to extract items from similar data sets.   
+Below we have written a function to extract demographic info, a function to extract responses to the TSC, and (most importantly!) a function to recode the responses to subtract a one from each response. Importantly, the two former functions assume that the next version of this questionnaire has the same number of questions in the same order. Assuming this is indeed the case, functions to isolate questions of interest could be helpful to extract items from similar data sets.
+
+#I really enjoyed that you added the long format above, it really shows how efficient writing a function can be.
 ```{r tsc_new}
 #NEW VERSION - find means of each item of tsc
 
@@ -178,6 +183,8 @@ subtract1 <- function(df) {
 
 ```
 Notice that we gave the functions above meaningful names that are easily interpretable. The argument for each function is the dataframe to which the function should be applied. [Here, for tutorial purposes, spend some time explaining map] If you're following along, you'll see that the functions we just defined are now listed in the global environment. Now let's see these newly minted functions at work:
+
+#I definitely appreciate the meaningful function names.
 ```{r}
 #GROUP 1
 demo1 <- d1_raw %>% 
@@ -192,11 +199,11 @@ tsc1 <- subtract1(tsc1)
 #merge it back into the dataframe with demographics
 tsc1_long <- cbind(demo1, tsc1)
 
-tsc1_long <- tsc1_long %>% 
+tsc1_long <- tsc1_long %>% # You could use the magrittR double pipe "%<>%" instead of assigning back to the same df
 gather(item, response, -1:-7) %>% 
   separate(item, c(NA, "item"), sep = "_") %>% 
   mutate(scale = "tsc") %>% 
-  select(1:7, 10, 8:9)
+  select(1:7, 10, 8:9)# same suggestion as above select(1:7, 8:9, 10)
 
 #GROUP 2
 demo2 <- d2_raw %>% 
@@ -206,7 +213,7 @@ tsc2 <- d2_raw %>%
   get_tsc_items
 
 #subtract 1 from all the tsc columns
-tsc2 <- subtract1(tsc2)
+tsc2 <- subtract1(tsc2)#it may be helpful to mention why you would want to do this, oh I see you do it below!
 
 #merge it back into the dataframe with demographics
 tsc2_long <- cbind(demo2, tsc2)
@@ -215,7 +222,7 @@ tsc2_long <- tsc2_long %>%
 gather(item, response, -1:-7) %>% 
   separate(item, c(NA, "item"), sep = "_") %>% 
   mutate(scale = "tsc") %>% 
-  select(1:7, 10, 8:9)
+  select(1:7, 10, 8:9) #select(1:7, 8:9, 10)
 
 tsc_long <- bind_rows(tsc1_long, tsc2_long)
 #write_csv(tsc_long, path = "/Users/monikalind/Documents/UO/sap/tsc_long.csv")
@@ -237,6 +244,7 @@ plots <- tsc_split %>%
 paths <- paste0("gender", names(plots), ".png")
 
 walk2(paths, plots, ggsave)
+#When I run this, I get "computation failed in 'stat_bin()' and I went to check out the plots and there's no data for the gender4 and gender5 plot. 
 ```
 So now we have histograms that show the distribution of Trauma Symptom Checklist scores for each of five gender categories. Again, we were spared some repetition...What if we wanted to get descriptive statistics for each of these groups? Nesting provides one avenue of doing this. This creates a data frame with a list column, which is an alternative to using the split() function we used above. 
 ```{r}
@@ -254,4 +262,6 @@ map_dbl(by_gender$data, ~mean(.x$age))
 #Or other descriptives:
 map_dbl(by_gender$data, ~min(.x$q65_1), na.rm = TRUE)
 map_dbl(by_gender$data, ~max(.x$q65_1), na.rm = TRUE) #Note from KH: I need to figure out why min and max is yielding "NA" for gender category 2.
+
+#as you noted, these last two lines don't seem to be running properly and it's returning -Inf
 ```
